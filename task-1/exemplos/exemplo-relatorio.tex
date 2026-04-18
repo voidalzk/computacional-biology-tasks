@@ -1,0 +1,269 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{subcaption}
+\usepackage{listings}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+\geometry{margin=2.5cm}
+\graphicspath{{./imagens/}}
+
+% Remover numeração das seções
+\setcounter{secnumdepth}{0}
+
+% Configuração para código Python
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{orange},
+    commentstyle=\color{gray},
+    numbers=none,
+    frame=single,
+    breaklines=true,
+    backgroundcolor=\color{gray!10},
+    showstringspaces=false
+}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+}
+
+\begin{document}
+
+% ============================================================================
+% INTRODUÇÃO
+% ============================================================================
+\section{}
+
+\textbf{Aluno:} Gabriel Francelino Voidaleski
+
+\textbf{Curso:} Tecnologia em Análise e Desenvolvimento de Sistemas (TADS)
+
+\textbf{Disciplina:} Tópicos Especiais em Banco de Dados 1
+
+\vspace{0.5cm}
+
+Este trabalho apresenta a aplicação de técnicas de aprendizado de máquina supervisionado para classificação de vinhos utilizando o dataset Wine da UCI. Foram implementados três algoritmos de classificação: Árvore de Decisão, Random Forest e SVM (Support Vector Machine). O objetivo é treinar os modelos, avaliar seu desempenho através de matrizes de confusão e métricas (acurácia, precisão, sensibilidade e F1-score), e identificar técnicas para melhorar os resultados.
+
+% ============================================================================
+% 2. BASE DE DADOS
+% ============================================================================
+\section{Base de Dados Escolhida}
+
+\textbf{Dataset:} Wine Recognition Dataset
+
+\textbf{Fonte:} UCI Machine Learning Repository
+
+\textbf{URL:} \url{https://archive.ics.uci.edu/ml/datasets/wine}
+
+\textbf{Descrição:} Dataset com análises químicas de vinhos de 3 cultivares diferentes da Itália. Contém 178 amostras, 13 atributos numéricos e 3 classes.
+
+\begin{lstlisting}
+# Carregar dados
+from sklearn.datasets import load_wine
+wine = load_wine()
+X, y = wine.data, wine.target
+\end{lstlisting}
+
+% ============================================================================
+% 2. TÉCNICAS DE APRENDIZADO
+% ============================================================================
+\section{Técnicas de Aprendizado Escolhidas}
+
+\begin{itemize}
+    \item \textbf{Árvore de Decisão} - Algoritmo simples e interpretável
+    \item \textbf{Random Forest} - Ensemble de múltiplas árvores
+    \item \textbf{SVM (Support Vector Machine)} - Classificador baseado em hiperplanos
+\end{itemize}
+
+\begin{lstlisting}
+# Dividir dados (70% treino, 30% teste)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42)
+
+# Treinar modelo inicial
+modelo_inicial = DecisionTreeClassifier(random_state=42)
+modelo_inicial.fit(X_train, y_train)
+y_pred_inicial = modelo_inicial.predict(X_test)
+\end{lstlisting}
+
+% ============================================================================
+% 3. MATRIZ DE CONFUSÃO - MODELO INICIAL
+% ============================================================================
+\section{Matriz de Confusão - Modelo Inicial}
+
+O primeiro modelo treinado foi a Árvore de Decisão, utilizando os dados sem normalização. Este serve como baseline para comparação com os modelos otimizados.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.6\textwidth]{matriz_inicial.png}
+\caption{Matriz de Confusão - Árvore de Decisão (Modelo Inicial)}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Valores da Matriz de Confusão - Árvore de Decisão}
+\begin{tabular}{cc|ccc}
+\toprule
+& & \multicolumn{3}{c}{\textbf{Predito}} \\
+& & Classe 0 & Classe 1 & Classe 2 \\
+\midrule
+\multirow{3}{*}{\textbf{Real}} 
+& Classe 0 & 18 & 1 & 0 \\
+& Classe 1 & 0 & 21 & 0 \\
+& Classe 2 & 1 & 0 & 13 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Métricas do Modelo Inicial:}
+\begin{itemize}
+    \item Taxa de Acertos (Acurácia): 96,30\%
+    \item Precisão: 96,38\%
+    \item Sensibilidade (Recall): 96,30\%
+    \item F1-Score: 96,28\%
+\end{itemize}
+
+% ============================================================================
+% 4. MÉTODOS PARA MELHORAR
+% ============================================================================
+\section{Métodos Aplicados para Melhorar os Resultados}
+
+Embora a Árvore de Decisão tenha alcançado 96,30\% de acurácia, buscamos melhorar os resultados através das seguintes técnicas:
+
+\begin{itemize}
+    \item \textbf{Normalização dos dados} (StandardScaler) - Padroniza os atributos para média 0 e desvio padrão 1
+    \item \textbf{Troca de algoritmo} para Random Forest e SVM
+\end{itemize}
+
+\begin{lstlisting}
+# Normalizar dados
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Treinar Random Forest
+modelo_rf = RandomForestClassifier(n_estimators=100, random_state=42)
+modelo_rf.fit(X_train_scaled, y_train)
+
+# Treinar SVM
+modelo_svm = SVC(kernel='rbf', random_state=42)
+modelo_svm.fit(X_train_scaled, y_train)
+\end{lstlisting}
+
+% ============================================================================
+% 5. MATRIZ DE CONFUSÃO - RESULTADO OBTIDO
+% ============================================================================
+\section{Matriz de Confusão - Resultado Obtido}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{matriz_rf_svm.png}
+\caption{Matrizes de Confusão - Random Forest e SVM (Modelos Otimizados)}
+\end{figure}
+
+\subsection{Random Forest}
+
+\begin{table}[H]
+\centering
+\caption{Valores da Matriz de Confusão - Random Forest}
+\begin{tabular}{cc|ccc}
+\toprule
+& & \multicolumn{3}{c}{\textbf{Predito}} \\
+& & Classe 0 & Classe 1 & Classe 2 \\
+\midrule
+\multirow{3}{*}{\textbf{Real}} 
+& Classe 0 & 19 & 0 & 0 \\
+& Classe 1 & 0 & 21 & 0 \\
+& Classe 2 & 0 & 0 & 14 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Métricas Random Forest:}
+\begin{itemize}
+    \item Taxa de Acertos: 100,00\%
+    \item Precisão: 100,00\%
+    \item Sensibilidade: 100,00\%
+    \item F1-Score: 100,00\%
+\end{itemize}
+
+\subsection{SVM}
+
+\begin{table}[H]
+\centering
+\caption{Valores da Matriz de Confusão - SVM}
+\begin{tabular}{cc|ccc}
+\toprule
+& & \multicolumn{3}{c}{\textbf{Predito}} \\
+& & Classe 0 & Classe 1 & Classe 2 \\
+\midrule
+\multirow{3}{*}{\textbf{Real}} 
+& Classe 0 & 19 & 0 & 0 \\
+& Classe 1 & 0 & 21 & 0 \\
+& Classe 2 & 0 & 1 & 13 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Métricas SVM:}
+\begin{itemize}
+    \item Taxa de Acertos: 98,15\%
+    \item Precisão: 98,23\%
+    \item Sensibilidade: 98,15\%
+    \item F1-Score: 98,14\%
+\end{itemize}
+
+% ============================================================================
+% 6. COMPARAÇÃO
+% ============================================================================
+\section{Comparação dos Resultados}
+
+\begin{table}[H]
+\centering
+\caption{Resumo Comparativo}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Métrica} & \textbf{Decision Tree} & \textbf{Random Forest} & \textbf{SVM} \\
+\midrule
+Taxa de Acertos & 96,30\% & 100,00\% & 98,15\% \\
+Precisão & 96,38\% & 100,00\% & 98,23\% \\
+Sensibilidade & 96,30\% & 100,00\% & 98,15\% \\
+F1-Score & 96,28\% & 100,00\% & 98,14\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Melhor modelo:} Random Forest (100,00\%)
+
+\textbf{Melhoria sobre inicial:} +3,70 pontos percentuais
+
+% ============================================================================
+% 7. CONCLUSÃO
+% ============================================================================
+\section{Conclusão}
+
+Neste trabalho foram implementadas três técnicas de aprendizado de máquina supervisionado para classificação de vinhos: Árvore de Decisão, Random Forest e SVM. 
+
+O modelo inicial (Árvore de Decisão sem normalização) obteve 96,30\% de acurácia. Após aplicar normalização dos dados com StandardScaler e testar algoritmos mais robustos, obtivemos melhorias significativas.
+
+O Random Forest atingiu 100\% de acurácia no conjunto de teste, seguido pelo SVM com 98,15\%. Isso demonstra que a combinação de pré-processamento adequado (normalização) com algoritmos de ensemble (Random Forest) pode melhorar significativamente o desempenho em problemas de classificação.
+
+\end{document}

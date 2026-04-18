@@ -1,0 +1,178 @@
+suppressPackageStartupMessages({
+library(igraph)
+})
+install.packages(c("igraph", "RColorBrewer", "ComplexHeatmap"))
+rescale_to <- function(x, to = c(0, 1)) {
+rx <- range(x, na.rm = TRUE)
+if (is.infinite(rx[1]) || is.infinite(rx[2]) || rx[1] == rx[2]) {
+return(rep(mean(to), length(x)))
+}
+(x - rx[1]) / (rx[2] - rx[1]) * (to[2] - to[1]) + to[1]
+}
+csv_path <- "./WHO-COVID-19-global-table-data.csv"
+who_df <- read.csv(
+file = csv_path,
+stringsAsFactors = FALSE,
+check.names = FALSE,
+fileEncoding = "UTF-8-BOM"
+)
+stopifnot(is.data.frame(who_df))
+# Renomeia colunas para facilitar manipulação
+col_map <- c(
+"Name" = "country",
+"WHO Region" = "region",
+"Cases - cumulative total" = "cases_total",
+"Cases - cumulative total per 100000 population" = "cases_per100k",
+"Cases - newly reported in last 7 days" = "cases_7d",
+"Cases - newly reported in last 7 days per 100000 population" = "cases_7d_per100k",
+"Cases - newly reported in last 24 hours" = "cases_24h",
+"Deaths - cumulative total" = "deaths_total",
+"Deaths - cumulative total per 100000 population" = "deaths_per100k",
+"Deaths - newly reported in last 7 days" = "deaths_7d",
+"Deaths - newly reported in last 7 days per 100000 population" = "deaths_7d_per100k",
+"Deaths - newly reported in last 24 hours" = "deaths_24h"
+)
+names(who_df) <- ifelse(names(who_df) %in% names(col_map),
+col_map[names(who_df)],
+names(who_df)
+)
+num_cols <- c(
+"cases_total", "cases_per100k", "cases_7d", "cases_7d_per100k",
+"cases_24h", "deaths_total", "deaths_per100k", "deaths_7d",
+"deaths_7d_per100k", "deaths_24h"
+)
+for (cn in num_cols) {
+if (cn %in% names(who_df)) {
+who_df[[cn]] <- suppressWarnings(as.numeric(who_df[[cn]]))
+}
+}
+who_df$region[is.na(who_df$region) | who_df$region == ""] <- "Unknown"
+# Remove linhas agregadas que distorcem comparações entre países
+who_df <- subset(
+who_df,
+country != "Global" & !grepl("^International conveyance", country)
+)
+cat("Dimensão do data.frame:", dim(who_df)[1], "linhas x", dim(who_df)[2], "colunas\n")
+if (!dir.exists("figuras")) dir.create("figuras")
+# Mantém os 8 países com mais casos por região para reduzir poluição visual
+split_by_region <- split(who_df, who_df$region)
+top_country_df <- do.call(
+rbind,
+lapply(split_by_region, function(d) {
+d <- d[order(d$cases_total, decreasing = TRUE), ]
+head(d, 8)
+})
+)
+edges_a <- data.frame(
+from = top_country_df$region,
+to = top_country_df$country,
+weight = log10(top_country_df$cases_total + 1),
+cases_total = top_country_df$cases_total,
+stringsAsFactors = FALSE
+)
+g_a <- graph_from_data_frame(edges_a, directed = FALSE)
+V(g_a)$type <- V(g_a)$name %in% unique(edges_a$to)
+V(g_a)$color <- ifelse(V(g_a)$type, "#1f77b4", "#d62728")
+V(g_a)$size <- ifelse(V(g_a)$type, 7, 16)
+V(g_a)$label.cex <- ifelse(V(g_a)$type, 0.45, 0.8)
+E(g_a)$width <- rescale_to(E(g_a)$weight, to = c(0.7, 5))
+E(g_a)$color <- "#bdbdbd"
+png("figuras/rede_bipartida_regiao_pais.png", width = 1600, height = 1100, res = 140)
+plot(
+g_a,
+layout = layout_with_fr(g_a),
+main = "Estratégia A: Rede bipartida (Região - País)\nAresta ponderada por log10(casos acumulados + 1)",
+vertex.label.family = "sans",
+vertex.frame.color = NA
+)
+dev.off()
+region_df <- aggregate(
+who_df[, c("cases_total", "cases_per100k", "deaths_total", "deaths_per100k")],
+by = list(region = who_df$region),
+FUN = function(x) mean(x, na.rm = TRUE)
+)
+row.names(region_df) <- region_df$region
+region_mat <- as.matrix(region_df[, -1])
+region_mat <- scale(region_mat)
+dist_mat <- as.matrix(dist(region_mat, method = "euclidean"))
+sim_mat <- exp(-dist_mat)
+diag(sim_mat) <- 0
+thr <- quantile(sim_mat[upper.tri(sim_mat)], probs = 0.75, na.rm = TRUE)
+edge_idx <- which(sim_mat >= thr, arr.ind = TRUE)
+edge_idx <- edge_idx[edge_idx[, 1] < edge_idx[, 2], , drop = FALSE]
+if (nrow(edge_idx) == 0) {
+# Fallback: conecta cada região ao vizinho mais parecido
+edge_idx <- do.call(rbind, lapply(seq_len(nrow(sim_mat)), function(i) {
+j <- which.max(sim_mat[i, ])
+c(i, j)
+}))
+edge_idx <- edge_idx[edge_idx[, 1] < edge_idx[, 2], , drop = FALSE]
+}
+edges_b <- data.frame(
+from = row.names(sim_mat)[edge_idx[, 1]],
+to = row.names(sim_mat)[edge_idx[, 2]],
+similarity = sim_mat[edge_idx],
+stringsAsFactors = FALSE
+)
+g_b <- graph_from_data_frame(edges_b, directed = FALSE, vertices = region_df$region)
+region_total_cases <- aggregate(cases_total ~ region, who_df, sum, na.rm = TRUE)
+case_lookup <- setNames(region_total_cases$cases_total, region_total_cases$region)
+V(g_b)$total_cases <- case_lookup[V(g_b)$name]
+V(g_b)$size <- rescale_to(log10(V(g_b)$total_cases + 1), to = c(15, 38))
+V(g_b)$color <- "#2ca25f"
+V(g_b)$label.cex <- 0.9
+E(g_b)$width <- rescale_to(E(g_b)$similarity, to = c(1, 8))
+E(g_b)$color <- "#636363"
+png("figuras/rede_similaridade_regioes.png", width = 1500, height = 1100, res = 140)
+plot(
+g_b,
+layout = layout_in_circle(g_b),
+main = "Estratégia B: Rede de similaridade entre regiões\nNós maiores = maior total acumulado de casos",
+vertex.frame.color = NA,
+edge.curved = 0.15
+)
+dev.off()
+country_vars <- c("cases_per100k", "cases_7d_per100k", "deaths_per100k", "deaths_7d_per100k")
+country_df <- who_df[, c("country", "region", country_vars, "cases_total")]
+country_df <- country_df[complete.cases(country_df), ]
+country_df <- country_df[order(country_df$cases_total, decreasing = TRUE), ]
+country_df <- head(country_df, 120)
+X <- scale(country_df[, country_vars])
+d <- as.matrix(dist(X, method = "euclidean"))
+diag(d) <- Inf
+k <- 3
+edge_list <- vector("list", nrow(country_df))
+for (i in seq_len(nrow(country_df))) {
+nn <- order(d[i, ])[1:k]
+edge_list[[i]] <- data.frame(
+from = country_df$country[i],
+to = country_df$country[nn],
+dist = d[i, nn],
+stringsAsFactors = FALSE
+)
+}
+edges_c <- do.call(rbind, edge_list)
+g_c <- graph_from_data_frame(edges_c, directed = FALSE, vertices = country_df)
+g_c <- simplify(g_c, remove.multiple = TRUE, edge.attr.comb = "min")
+com <- cluster_louvain(g_c)
+palette_c <- rainbow(length(unique(membership(com))))
+V(g_c)$color <- palette_c[membership(com)]
+V(g_c)$size <- rescale_to(log10(V(g_c)$cases_total + 1), to = c(4, 18))
+V(g_c)$label <- ifelse(V(g_c)$cases_total >= quantile(V(g_c)$cases_total, 0.9), V(g_c)$name, "")
+V(g_c)$label.cex <- 0.45
+E(g_c)$color <- "#bdbdbd"
+E(g_c)$width <- 0.8
+png("figuras/rede_proximidade_paises_knn.png", width = 1800, height = 1200, res = 140)
+plot(
+g_c,
+layout = layout_with_fr(g_c),
+main = "Estratégia C: Rede k-NN entre países (k=3)\nCores indicam comunidades por similaridade epidemiológica",
+vertex.frame.color = NA,
+edge.curved = 0.05
+)
+dev.off()
+cat("\nResumo para discussão:\n")
+cat("- Estratégia A mostra vínculo estrutural entre regiões e países com maior carga acumulada de casos.\n")
+cat("- Estratégia B evidencia proximidade estatística entre regiões com perfis epidemiológicos semelhantes.\n")
+cat("- Estratégia C revela agrupamentos de países (comunidades) por semelhança de indicadores per capita e recentes.\n")
+cat("\nArquivos gerados na pasta 'figuras'.\n")
