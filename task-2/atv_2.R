@@ -169,18 +169,25 @@ cat("Direcionado:", is_directed(grafo), "\n")
 # - Ordem, tamanho, densidade, diametro e transitividade global
 # ============================================================================
 
+cat("----- REDE COMPLETA -----\n")
 cat("Ordem (Vertices):", vcount(grafo), "\n")
 cat("Tamanho (Arestas):", ecount(grafo), "\n")
 cat("Densidade:", edge_density(grafo, loops = FALSE), "\n")
 cat("Diametro:", diameter(grafo, directed = FALSE, unconnected = TRUE), "\n")
-cat(
-  "Transitividade (Clustering):",
-  transitivity(grafo, type = "globalundirected"),
-  "\n"
-)
+cat("Transitividade (Clustering):", transitivity(grafo, type = "globalundirected"), "\n")
+
+# Analise de Grau Basica
+dg <- degree(grafo)
+cat("Grau medio:", mean(dg), "\n")
+
+# Removendo nós isolados (grau zero)
+grafo_sem_isolados <- delete_vertices(grafo, v = degree(grafo) == 0)
+cat("\n----- APÓS REMOVER NÓS ISOLADOS -----\n")
+cat("Ordem (Vertices):", vcount(grafo_sem_isolados), "\n")
+cat("Densidade:", edge_density(grafo_sem_isolados, loops = FALSE), "\n")
 
 # ============================================================================
-# ETAPA 3. IDENTIFICACAO DE ATORES-CHAVE (HUBS)
+# ETAPA 3. IDENTIFICACAO DE ATORES-CHAVE (HUBS) E DISTRIBUIÇÃO
 # - Centralidade de grau e de intermediacao
 # - Ranking Top 5 em cada medida
 # ============================================================================
@@ -301,7 +308,7 @@ arquivo_hubs_salvo <- salvar_png_seguro(
   altura = 2200,
   res = ppi,
   plot_fn = function() {
-    par(mfrow = c(1, 2), mar = c(4, 8, 3, 1), oma = c(0, 0, 1, 0))
+    par(mfrow = c(1, 3), mar = c(4, 8, 3, 1), oma = c(0, 0, 1, 0))
 
     barplot(
       rev(graus[top_10_grau_idx]),
@@ -324,8 +331,12 @@ arquivo_hubs_salvo <- salvar_png_seguro(
       main = "Top 10 por Intermediacao",
       xlab = "Betweenness"
     )
+    
+    # Adicionando visualizacao da distribuicao de graus
+    hist(dg, breaks = 30, col = "#E9C46A", border = "white",
+         main = "Distribuicao de Graus", xlab = "Grau", ylab = "Frequencia")
 
-    mtext("Hubs estruturais em bio-yeast", outer = TRUE, cex = 1.1, font = 2)
+    mtext("Analise Estrutural e Hubs em bio-yeast", outer = TRUE, cex = 1.1, font = 2)
   }
 )
 
