@@ -108,6 +108,7 @@ ecount(grafo)           # Numero de arestas (tamanho)
 edge_density(grafo)     # Densidade
 diameter(grafo, directed = FALSE, unconnected = TRUE)  # Diametro
 transitivity(grafo, type = "globalundirected")         # Transitividade
+mean(degree(grafo))     # Grau medio
 \end{lstlisting}
 
 \begin{table}[H]
@@ -122,12 +123,13 @@ Ordem (vértices)   & 1458 \\
 Tamanho (arestas)  & 1948 \\
 Densidade          & 0,001834 \\
 Diâmetro           & 19 \\
-Transitividade     & 0,05178 \\
+Transitividade     & 0,051776 \\
+Grau médio         & 2,672154 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-A densidade de 0,18\% indica uma rede muito esparsa: das conexões possíveis entre os 1458 nós, menos de 1 em cada 500 existe de fato. O diâmetro 19 significa que, no pior caso, são necessários 19 "saltos" para ir de uma proteína a outra. A transitividade (também chamada de coeficiente de agrupamento global) vale 0,052 — um valor bem maior que a densidade, o que indica que vizinhos de um nó tendem a também se conectar entre si mais do que seria esperado em uma rede aleatória. Isso sugere que a rede tem uma \textbf{estrutura modular}, com grupos de proteínas mais fortemente conectados internamente.
+A densidade de 0,18\% indica uma rede muito esparsa: das conexões possíveis entre os 1458 nós, menos de 1 em cada 500 existe de fato. O diâmetro 19 significa que, no pior caso, são necessários 19 "saltos" para ir de uma proteína a outra. A transitividade (também chamada de coeficiente de agrupamento global) vale 0,052 — um valor bem maior que a densidade, o que indica que vizinhos de um nó tendem a também se conectar entre si mais do que seria esperado em uma rede aleatória. O grau médio de 2,67 mostra que a maioria das proteínas possui poucas conexões diretas, com poucos nós muito conectados. Além disso, remover nós isolados não alterou a ordem da rede, indicando que praticamente todos os vértices participam de alguma interação.
 
 Quanto à classificação como rede de ``mundo pequeno'' (\textit{small world}): redes desse tipo costumam ter diâmetro pequeno e transitividade alta ao mesmo tempo. Aqui, o diâmetro de 19 é relativamente alto para 1458 nós, então a rede não se encaixa bem nessa categoria. A classificação mais adequada é de uma \textbf{rede biológica esparsa e modular}.
 
@@ -157,7 +159,7 @@ Nó 147 (56), Nó 819 (38), Nó 98 (30), Nó 567 (29), Nó 844 (29)
 \textbf{Top 5 por Intermediação} (Betweenness — quantos caminhos curtos passam pelo nó):
 
 \begin{center}
-Nó 819 (225922), Nó 844 (148269), Nó 98 (122960), Nó 147 (104508), Nó 595 (83235)
+Nó 819 (225922,23), Nó 844 (148268,95), Nó 98 (122960,35), Nó 147 (104507,89), Nó 595 (83235,45)
 \end{center}
 
 \textbf{Discussão do papel estrutural dos hubs:}
@@ -221,12 +223,12 @@ plot(grafo, layout = layout_fr,
 \caption{Componente gigante da rede, com os 5 hubs de maior grau identificados por rótulo. Facilita a visualização da posição central desses nós.}
 \end{figure}
 
-\subsection{Comparativo dos hubs por grau e intermediação}
+\subsection{Comparativo dos hubs por grau, intermediação e distribuição}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.98\textwidth]{top_hubs_grau_intermediacao_200ppi.png}
-\caption{Top 10 nós por Grau (esquerda) e por Intermediação/Betweenness (direita). A comparação visual deixa clara a diferença entre os dois rankings.}
+\caption{Top 10 nós por Grau (esquerda), por Intermediação/Betweenness (centro) e distribuição de graus (direita). A comparação visual deixa clara a diferença entre os dois rankings e a concentração de nós com baixo grau.}
 \end{figure}
 
 % ============================================================================
@@ -236,7 +238,7 @@ plot(grafo, layout = layout_fr,
 
 \textbf{Tipo de rede e classificação estrutural}
 
-A rede bio-yeast é uma rede biológica de interações proteína-proteína (PPI) esparsa e modular. A densidade muito baixa (0,18\%) mostra que cada proteína interage com apenas uma pequena fração das demais, o que é típico de redes biológicas. O coeficiente de transitividade (0,052), bem mais alto que a densidade, indica que proteínas que interagem com uma mesma terceira proteína também tendem a interagir entre si com mais frequência do que seria esperado ao acaso. O diâmetro de 19 mostra que a rede não é compacta o suficiente para ser classificada como \textit{small world}: apesar dos agrupamentos locais, os caminhos entre partes distantes da rede são relativamente longos.
+A rede bio-yeast é uma rede biológica de interações proteína-proteína (PPI) esparsa e modular. A densidade muito baixa (0,18\%) mostra que cada proteína interage com apenas uma pequena fração das demais, o que é típico de redes biológicas. O coeficiente de transitividade (0,052), bem mais alto que a densidade, indica que proteínas que interagem com uma mesma terceira proteína também tendem a interagir entre si com mais frequência do que seria esperado ao acaso. O diâmetro de 19 mostra que a rede não é compacta o suficiente para ser classificada como \textit{small world}: apesar dos agrupamentos locais, os caminhos entre partes distantes da rede são relativamente longos. O grau médio de 2,67 e o histograma de graus reforçam a presença de poucos hubs muito conectados frente a muitos nós de baixo grau.
 
 \textbf{Análise dos hubs}
 
