@@ -344,3 +344,5 @@ cat("\nImagens salvas em 200 ppi:\n")
 cat("-", arquivo_rede_completa_salvo, "\n")
 cat("-", arquivo_componente_gigante_salvo, "\n")
 cat("-", arquivo_hubs_salvo, "\n")
+
+
